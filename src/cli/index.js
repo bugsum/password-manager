@@ -1,6 +1,6 @@
 const { Command } = require('commander');
 const db = require('../db/database');
-const { hashPassword } = require('../security/hash');
+const { hashPassword, verifyPassword } = require('../security/hash');
 
 const program = new Command();
 
@@ -38,6 +38,43 @@ program
             );
         } catch (err) {
             console.error('❌ Registration failed:', err);
+        }
+    });
+
+program
+    .command('login <username> <password>')
+    .description('Login with username and password')
+    .action(async (username, password) => {
+        try {
+            db.get(
+                'SELECT * FROM users WHERE username = ?',
+                [username],
+                async (err, row) => {
+                    if (err) {
+                        console.error('❌ Database error:', err);
+                        return;
+                    }
+                    if (!row) {
+                        console.error('❌ User not found.');
+                        return;
+                    }
+
+                    const valid = await verifyPassword(
+                        password,
+                        row.password_hash
+                    );
+                    if (valid) {
+                        console.log(
+                            `✅ Login successful! Welcome, ${row.username}.`
+                        );
+                        console.log(`(Debug) Your user ID is ${row.id}`);
+                    } else {
+                        console.error('❌ Invalid password.');
+                    }
+                }
+            );
+        } catch (err) {
+            console.error('❌ Login failed:', err);
         }
     });
 
